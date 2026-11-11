@@ -1,0 +1,11 @@
+[tasks.build]
+description = "Build build/TSQuickLook.app"
+run = "sh scripts/build.sh"
+
+[tasks.install]
+description = "Build, copy to ~/Applications and register the Quick Look extension"
+run = "sh scripts/install.sh"
+
+[tasks.uninstall]
+description = "Unregister the extension and remove ~/Applications/TSQuickLook.app"
+run = "sh scripts/uninstall.sh"
