@@ -21,6 +21,7 @@ TSQuickLook claims both types. A file that holds text is shown as source; a file
 
 - macOS 13 or later. Tested only on macOS 27.3 beta on Apple Silicon.
 - Xcode or the Command Line Tools (`xcode-select --install`) for `swiftc`, `clang` and `codesign`.
+- Xcode 26 or later for the app icon. Without it the build still works and the app has no icon.
 
 ## Install
 
@@ -108,6 +109,7 @@ The diagram source is `docs/architecture.html`.
 | `Sources/App/` | Settings app and extension registration |
 | `Sources/Shared/` | Settings model used by both |
 | `Resources/` | `Info.plist` files and the extension entitlements |
+| `Icon/` | App icon bundle, previews and notes |
 | `scripts/` | `build.sh`, `install.sh`, `uninstall.sh` |
 | `examples/sample.ts` | Sample file for a manual check |
 | `docs/` | Architecture diagram, preview pane notes |
