@@ -9,6 +9,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Settings app: `TSQuickLook.app` now opens a settings window. It shows the registration status and re-registers the extension, switches the appearance (auto, light, dark), picks the font and font size, and sets the preview size (fit to content, or a fixed width and height).
 - File extension list in the settings app with presets for `.ts`, `.mts`, `.cts`, `.tsx`, `.js`, `.mjs`, `.cjs`, `.jsx` and custom entries. Apply rewrites `QLSupportedContentTypes` in the installed extension, re-signs it and registers it again. An extension without a registered content type is skipped and named in the result.
 - `TSQuickLook --apply` applies the saved extension list without opening a window; `scripts/install.sh` uses it, so a reinstall keeps the selected extensions.
+- Copy button in a slim bar above the source. It puts the file's text on the clipboard and shows "Copied" for a moment.
 
 ### Changed
 

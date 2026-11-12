@@ -13,6 +13,7 @@ private final class SourceTextView: NSTextView {
 final class SourceView: NSView {
     let scrollView: NSScrollView
     let textView: NSTextView
+    let toolbar = PreviewToolbar(frame: .zero)
 
     override var isFlipped: Bool { true }
 
@@ -50,6 +51,8 @@ final class SourceView: NSView {
         scrollView = scroll
 
         super.init(frame: frame)
+        toolbar.backgroundColor = Renderer.background
+        addSubview(toolbar)
         addSubview(scroll)
     }
 
@@ -59,7 +62,9 @@ final class SourceView: NSView {
 
     override func layout() {
         super.layout()
-        scrollView.frame = bounds
+        let top = toolbar.isHidden ? 0 : PreviewToolbar.height
+        toolbar.frame = NSRect(x: 0, y: 0, width: bounds.width, height: PreviewToolbar.height)
+        scrollView.frame = NSRect(x: 0, y: top, width: bounds.width, height: max(0, bounds.height - top))
     }
 
     func show(_ text: NSAttributedString) {

@@ -49,6 +49,8 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
                 }
                 self.source = decoded
                 let content = SourceView(frame: self.view.bounds)
+                content.toolbar.isHidden = decoded.isEmpty
+                content.toolbar.copyText = { [weak self] in self?.source ?? "" }
                 content.show(text)
                 self.install(content)
                 self.sourceView = content
@@ -98,7 +100,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
         let columns = CGFloat(min(longest, 120))
         let width = min(max(columns * Renderer.advance(of: font) + 80, 520), 1100)
         let lineHeight = (font.ascender - font.descender + font.leading) * 1.5
-        let height = min(max(CGFloat(lines) * lineHeight + 56, 320), 900)
+        let height = min(max(CGFloat(lines) * lineHeight + 56 + PreviewToolbar.height, 320), 900)
         return NSSize(width: width.rounded(), height: height.rounded())
     }
 }
