@@ -19,6 +19,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - The extension is now view-based (`QLIsDataBasedPreview` false, principal class `TSQLPreviewViewController`): Finder's preview pane shows the highlighted source instead of the file icon. The source is drawn in a native text view; no HTML is generated.
 - Long lines wrap to the width of the preview, and the margins shrink in narrow panes.
 - The extension reads `~/Library/Application Support/TSQuickLook/settings.json` (appearance, font, font size, preview size) on every preview. Its sandbox now has read-only access to the file system for that.
+- README and the architecture diagram describe the view-based extension, the settings app, the video player, the copy button and the git gutter.
 
 ### Removed
 
