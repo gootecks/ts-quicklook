@@ -17,7 +17,7 @@
 	<dict>
 		<key>NSExtensionAttributes</key>
 		<dict>
-			<key>QLIsDataBasedPreview</key><true/>
+			<key>QLIsDataBasedPreview</key><false/>
 			<key>QLSupportedContentTypes</key>
 			<array>
 				<string>public.mpeg-2-transport-stream</string>
@@ -26,7 +26,7 @@
 			<key>QLSupportsSearchableItems</key><false/>
 		</dict>
 		<key>NSExtensionPointIdentifier</key><string>com.apple.quicklook.preview</string>
-		<key>NSExtensionPrincipalClass</key><string>PreviewProvider</string>
+		<key>NSExtensionPrincipalClass</key><string>TSQLPreviewViewController</string>
 	</dict>
 </dict>
 </plist>
