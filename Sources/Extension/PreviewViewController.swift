@@ -26,7 +26,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
                 return
             }
             guard TransportStream.matches(data.prefix(65536)) else {
-                self?.showSource(data, settings: settings, handler: handler)
+                self?.showSource(data, url: url, settings: settings, handler: handler)
                 return
             }
             DispatchQueue.main.async {
@@ -38,7 +38,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
                 video.load { size in
                     guard let size else {
                         DispatchQueue.global(qos: .userInitiated).async {
-                            self.showSource(data, settings: settings, handler: handler)
+                            self.showSource(data, url: url, settings: settings, handler: handler)
                         }
                         return
                     }
@@ -54,7 +54,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
         }
     }
 
-    private func showSource(_ data: Data, settings: PreviewSettings, handler: @escaping (Error?) -> Void) {
+    private func showSource(_ data: Data, url: URL, settings: PreviewSettings, handler: @escaping (Error?) -> Void) {
         let font = Renderer.font(for: settings)
         let text: NSAttributedString
         let decoded: String
@@ -81,11 +81,19 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
             let content = SourceView(frame: self.view.bounds)
             content.toolbar.isHidden = decoded.isEmpty
             content.toolbar.copyText = { [weak self] in self?.source ?? "" }
-            content.show(text)
+            content.show(text, font: font, lineNumbers: !decoded.isEmpty)
             self.install(content)
             self.sourceView = content
             self.preferredContentSize = preferred
             handler(nil)
+            guard !decoded.isEmpty else { return }
+            DispatchQueue.global(qos: .utility).async { [weak content] in
+                guard let changes = GitChanges.load(for: url, contents: data) else { return }
+                DispatchQueue.main.async {
+                    content?.gutter.changes = changes
+                    content?.toolbar.status = changes.summary
+                }
+            }
         }
     }
 
@@ -133,7 +141,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
         }
         longest = max(longest, current)
         let columns = CGFloat(min(longest, 120))
-        let width = min(max(columns * Renderer.advance(of: font) + 80, 520), 1100)
+        let width = min(max(columns * Renderer.advance(of: font) + 124, 520), 1100)
         let lineHeight = (font.ascender - font.descender + font.leading) * 1.5
         let height = min(max(CGFloat(lines) * lineHeight + 56 + PreviewToolbar.height, 320), 900)
         return NSSize(width: width.rounded(), height: height.rounded())

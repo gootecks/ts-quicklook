@@ -14,6 +14,7 @@ final class SourceView: NSView {
     let scrollView: NSScrollView
     let textView: NSTextView
     let toolbar = PreviewToolbar(frame: .zero)
+    let gutter: LineGutterView
 
     override var isFlipped: Bool { true }
 
@@ -49,6 +50,9 @@ final class SourceView: NSView {
         scroll.backgroundColor = Renderer.background
         scroll.documentView = text
         scrollView = scroll
+        gutter = LineGutterView(scrollView: scroll, textView: text)
+        scroll.verticalRulerView = gutter
+        scroll.hasVerticalRuler = true
 
         super.init(frame: frame)
         toolbar.backgroundColor = Renderer.background
@@ -67,8 +71,11 @@ final class SourceView: NSView {
         scrollView.frame = NSRect(x: 0, y: top, width: bounds.width, height: max(0, bounds.height - top))
     }
 
-    func show(_ text: NSAttributedString) {
+    func show(_ text: NSAttributedString, font: NSFont, lineNumbers: Bool) {
         textView.textStorage?.setAttributedString(text)
+        gutter.font = NSFont.monospacedDigitSystemFont(ofSize: max(9, font.pointSize - 1), weight: .regular)
+        gutter.reload()
+        scrollView.rulersVisible = lineNumbers
         textView.scrollToBeginningOfDocument(nil)
     }
 }

@@ -11,6 +11,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - `TSQuickLook --apply` applies the saved extension list without opening a window; `scripts/install.sh` uses it, so a reinstall keeps the selected extensions.
 - Copy button in a slim bar above the source. It puts the file's text on the clipboard and shows "Copied" for a moment.
 - Video player: a file that is a real MPEG transport stream (sync bytes at 188, 192 or 204 byte intervals) plays in an `AVPlayerView` with inline controls instead of showing the binary notice. Other binary files keep the notice.
+- Line-number gutter with git change bars: green for added lines, orange for modified lines, a red marker where lines were removed. A file with uncommitted changes is compared with `HEAD`; a clean file shows the lines its last commit touched. The bar above the source shows the summary ("Uncommitted changes · +3 −3", or the last commit's short hash, age and subject, or "Untracked"). Files outside a repository show line numbers only.
+- Git data is read directly from `.git` (refs, index, loose and packed objects) and diffed in-process, because the Quick Look sandbox does not let the extension start `git`.
 
 ### Changed
 
