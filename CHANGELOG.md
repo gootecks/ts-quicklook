@@ -10,6 +10,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - File extension list in the settings app with presets for `.ts`, `.mts`, `.cts`, `.tsx`, `.js`, `.mjs`, `.cjs`, `.jsx` and custom entries. Apply rewrites `QLSupportedContentTypes` in the installed extension, re-signs it and registers it again. An extension without a registered content type is skipped and named in the result.
 - `TSQuickLook --apply` applies the saved extension list without opening a window; `scripts/install.sh` uses it, so a reinstall keeps the selected extensions.
 - Copy button in a slim bar above the source. It puts the file's text on the clipboard and shows "Copied" for a moment.
+- Video player: a file that is a real MPEG transport stream (sync bytes at 188, 192 or 204 byte intervals) plays in an `AVPlayerView` with inline controls instead of showing the binary notice. Other binary files keep the notice.
 
 ### Changed
 
