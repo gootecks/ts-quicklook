@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 
 enum Renderer {
     static let maxBytes = 2_000_000
@@ -17,44 +17,105 @@ enum Renderer {
         pattern: #"(?<c>//[^\n]*|/\*[\s\S]*?\*/)|(?<s>"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\[\s\S]|[^`\\])*`)|(?<n>\b(?:0[xX][0-9a-fA-F_]+|0[bB][01_]+|0[oO][0-7_]+|\d[\d_]*(?:\.\d[\d_]*)?(?:[eE][+-]?\d+)?)n?\b)|(?<d>@[A-Za-z_$][\w$]*)|(?<w>[A-Za-z_$][\w$]*)"#
     )
 
-    static let style = """
-    :root{color-scheme:light dark}
-    body{margin:0;padding:14px 18px;background:#fff;color:#1f2328;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
-    pre{margin:0;white-space:pre;tab-size:4;font:inherit}
-    .c{color:#6e7781;font-style:italic}.s{color:#0a3069}.n{color:#0550ae}.k{color:#cf222e}.t{color:#8250df}.f{color:#6639ba}.d{color:#953800}
-    @media(prefers-color-scheme:dark){body{background:#0d1117;color:#e6edf3}.c{color:#8b949e}.s{color:#a5d6ff}.n{color:#79c0ff}.k{color:#ff7b72}.t{color:#ffa657}.f{color:#d2a8ff}.d{color:#ffa657}}
-    """
-
-    static func page(for data: Data) -> String {
-        let body: String
-        if data.prefix(8192).contains(0) {
-            body = "<p>Binary MPEG transport stream (\(data.count) bytes), not TypeScript source.</p>"
-        } else {
-            let note = data.count > maxBytes ? "<p>Showing the first \(maxBytes) bytes.</p>" : ""
-            body = note + "<pre>" + highlight(String(decoding: data.prefix(maxBytes), as: UTF8.self)) + "</pre>"
+    private static func dynamic(_ light: UInt32, _ dark: UInt32) -> NSColor {
+        NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            return color(isDark ? dark : light)
         }
-        return "<!doctype html><html><head><meta charset=\"utf-8\"><style>\(style)</style></head><body>\(body)</body></html>"
     }
 
-    static func escape(_ text: String) -> String {
-        text.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
+    private static func color(_ hex: UInt32) -> NSColor {
+        NSColor(
+            srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
+            green: CGFloat((hex >> 8) & 0xFF) / 255,
+            blue: CGFloat(hex & 0xFF) / 255,
+            alpha: 1
+        )
     }
 
-    static func highlight(_ source: String) -> String {
+    static let background = dynamic(0xffffff, 0x0d1117)
+    static let foreground = dynamic(0x1f2328, 0xe6edf3)
+
+    private static let commentColor = dynamic(0x6e7781, 0x8b949e)
+    private static let stringColor = dynamic(0x0a3069, 0xa5d6ff)
+    private static let numberColor = dynamic(0x0550ae, 0x79c0ff)
+    private static let keywordColor = dynamic(0xcf222e, 0xff7b72)
+    private static let typeColor = dynamic(0x8250df, 0xffa657)
+    private static let functionColor = dynamic(0x6639ba, 0xd2a8ff)
+    private static let decoratorColor = dynamic(0x953800, 0xffa657)
+
+    static func isBinary(_ data: Data) -> Bool {
+        data.prefix(8192).contains(0)
+    }
+
+    static func source(from data: Data) -> String {
+        String(decoding: data.prefix(maxBytes), as: UTF8.self)
+    }
+
+    static func font(for settings: PreviewSettings) -> NSFont {
+        let size = CGFloat(settings.fontSize)
+        if !settings.fontName.isEmpty, let named = NSFont(name: settings.fontName, size: size) {
+            return named
+        }
+        return NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
+    }
+
+    private static func italic(_ font: NSFont) -> NSFont {
+        let descriptor = font.fontDescriptor.withSymbolicTraits(font.fontDescriptor.symbolicTraits.union(.italic))
+        return NSFont(descriptor: descriptor, size: font.pointSize) ?? font
+    }
+
+    private static func paragraphStyle(for font: NSFont) -> NSParagraphStyle {
+        let style = NSMutableParagraphStyle()
+        let natural = font.ascender - font.descender + font.leading
+        style.lineSpacing = max(0, (natural * 1.5 - natural).rounded())
+        style.lineBreakMode = .byWordWrapping
+        style.tabStops = []
+        style.defaultTabInterval = 4 * advance(of: font)
+        return style
+    }
+
+    static func advance(of font: NSFont) -> CGFloat {
+        let glyph = font.glyph(withName: "space")
+        let width = font.advancement(forGlyph: glyph).width
+        return width > 0 ? width : font.pointSize * 0.6
+    }
+
+    private static func baseAttributes(_ font: NSFont) -> [NSAttributedString.Key: Any] {
+        [.font: font, .foregroundColor: foreground, .paragraphStyle: paragraphStyle(for: font)]
+    }
+
+    static func highlight(_ source: String, font: NSFont, truncated: Bool) -> NSAttributedString {
+        let result = NSMutableAttributedString(string: source, attributes: baseAttributes(font))
         let text = source as NSString
-        var html = ""
-        var cursor = 0
+        let commentFont = italic(font)
         tokens.enumerateMatches(in: source, range: NSRange(location: 0, length: text.length)) { match, _, _ in
             guard let match else { return }
             let range = match.range
-            html += escape(text.substring(with: NSRange(location: cursor, length: range.location - cursor)))
-            cursor = range.location + range.length
             let token = text.substring(with: range)
-            let kind = cssClass(for: match, token: token, in: text, after: cursor)
-            html += kind.isEmpty ? escape(token) : "<span class=\"\(kind)\">\(escape(token))</span>"
+            let kind = cssClass(for: match, token: token, in: text, after: range.location + range.length)
+            switch kind {
+            case "c":
+                result.addAttributes([.foregroundColor: commentColor, .font: commentFont], range: range)
+            case "s": result.addAttribute(.foregroundColor, value: stringColor, range: range)
+            case "n": result.addAttribute(.foregroundColor, value: numberColor, range: range)
+            case "k": result.addAttribute(.foregroundColor, value: keywordColor, range: range)
+            case "t": result.addAttribute(.foregroundColor, value: typeColor, range: range)
+            case "f": result.addAttribute(.foregroundColor, value: functionColor, range: range)
+            case "d": result.addAttribute(.foregroundColor, value: decoratorColor, range: range)
+            default: break
+            }
         }
-        return html + escape(text.substring(from: cursor))
+        if truncated {
+            var attributes = baseAttributes(font)
+            attributes[.foregroundColor] = commentColor
+            result.append(NSAttributedString(string: "\n\nShowing the first \(maxBytes) bytes.", attributes: attributes))
+        }
+        return result
+    }
+
+    static func notice(_ message: String, font: NSFont) -> NSAttributedString {
+        NSAttributedString(string: message, attributes: baseAttributes(font))
     }
 
     static func cssClass(for match: NSTextCheckingResult, token: String, in text: NSString, after end: Int) -> String {
