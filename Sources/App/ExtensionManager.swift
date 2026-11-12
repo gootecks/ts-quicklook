@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 enum ExtensionManager {
     static let extensionID = "local.tsquicklook.preview"
-    static let presets = ["ts", "mts", "cts", "tsx", "js", "mjs", "cjs", "jsx"]
+    static let presets = ["ts", "mts", "cts", "tsx", "js", "mjs", "cjs", "jsx", "log"]
 
     enum Status { case enabled, registered, ignored, missing }
 

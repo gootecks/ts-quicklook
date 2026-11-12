@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- `.log` preview: a `log` preset in the settings app claims `com.apple.log`, and `.log` files use a log grammar (timestamps, levels, error and warning words, `[tags]`, URLs, strings, numbers, separator lines). `.txt` logs are not supported because Quick Look handles `public.plain-text` internally and never asks an extension.
 - App icon: an Icon Composer bundle in `Icon/`, compiled into the app by `scripts/build.sh`.
 - Settings app: `TSQuickLook.app` now opens a settings window. It shows the registration status and re-registers the extension, switches the appearance (auto, light, dark), picks the font and font size, and sets the preview size (fit to content, or a fixed width and height).
 - File extension list in the settings app with presets for `.ts`, `.mts`, `.cts`, `.tsx`, `.js`, `.mjs`, `.cjs`, `.jsx` and custom entries. Apply rewrites `QLSupportedContentTypes` in the installed extension, re-signs it and registers it again. An extension without a registered content type is skipped and named in the result.

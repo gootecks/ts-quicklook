@@ -15,6 +15,7 @@ TSQuickLook claims both types. A file that holds text is shown as source; a file
 - Copy button above the source. It puts the file's text on the clipboard.
 - Git change bars beside the line numbers: green for added lines, orange for modified lines, a red marker where lines were removed. A file with uncommitted changes is compared with `HEAD`; a clean file shows the lines its last commit touched. The bar above the source shows the summary.
 - Video player with inline controls for real MPEG transport streams.
+- Log highlighting for `.log` files: timestamps, levels (`ERROR`, `WARN`, `INFO`, `DEBUG` and similar), "Error"/"failed" words, `[tags]`, URLs, quoted strings, numbers and separator lines.
 - Settings app for appearance, font, preview size and the list of file extensions.
 
 ## Requirements
@@ -57,7 +58,7 @@ Open `~/Applications/TSQuickLook.app`. The window has five sections:
 | Appearance | Auto, light or dark |
 | Font | Font and font size |
 | Preview size | Fit to content, or a fixed width and height |
-| File extensions | Which extensions the preview claims: `.ts`, `.mts`, `.cts`, `.tsx`, `.js`, `.mjs`, `.cjs`, `.jsx` or your own |
+| File extensions | Which extensions the preview claims: `.ts`, `.mts`, `.cts`, `.tsx`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.log` or your own |
 
 Appearance, font and size take effect on the next preview. A change to the extension list needs **Apply**: it rewrites `QLSupportedContentTypes` in the installed extension, signs it again and registers it. An extension that macOS has no content type for is skipped and named in the result.
 
@@ -79,6 +80,7 @@ Without `mise`: `sh scripts/uninstall.sh`.
 - `TSQuickLookPreview.appex` is a sandboxed, view-based Quick Look preview extension. Its `Info.plist` lists the claimed types under `QLSupportedContentTypes`.
 - `PreviewViewController` reads the file and decides what to show: source, video or a notice for other binary data.
 - `Renderer` tokenizes the source with one regular expression and builds an attributed string for a native text view. No HTML or JavaScript is involved.
+- `LogRenderer` does the same for `.log` files with a log grammar instead of the TypeScript one.
 - `TransportStream` checks for MPEG sync bytes at 188, 192 or 204 byte intervals. A match plays in an `AVPlayerView`.
 - `GitRepository`, `GitObjectStore` and `LineDiff` read `.git` directly (refs, index, loose and packed objects) and diff in-process. The sandbox does not let the extension start `git`.
 - The sandbox has read-only access to the file system. The extension needs it to read the settings file and the `.git` directory, which lie outside the previewed file.
@@ -94,6 +96,7 @@ The diagram source is `docs/architecture.html`.
 - In a preview narrower than 220 points, which includes Finder's preview pane at its default width, the summary text is hidden. The change bars stay.
 - The build is signed ad hoc for the machine that built it. It is not notarized and is not meant to be distributed as a binary.
 - Thumbnails and Spotlight are not covered.
+- `.txt` files cannot be claimed. Their type, `public.plain-text`, is on Quick Look's hardcoded list of internally handled types (`QLUTIManager.internallyClaimedTypes`), so Apple's built-in text viewer renders them before any extension is asked. Logs written as `.txt`, such as OBS logs, show highlighted only after renaming them to `.log`.
 
 ## Troubleshooting
 

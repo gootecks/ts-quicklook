@@ -64,7 +64,10 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
             text = Renderer.notice("Binary file (\(data.count) bytes), not source text.", font: font)
         } else {
             decoded = Renderer.source(from: data)
-            text = Renderer.highlight(decoded, font: font, truncated: data.count > Renderer.maxBytes)
+            let truncated = data.count > Renderer.maxBytes
+            text = LogRenderer.handles(url)
+                ? LogRenderer.highlight(decoded, font: font, truncated: truncated)
+                : Renderer.highlight(decoded, font: font, truncated: truncated)
             if settings.sizeMode == .auto {
                 size = Self.fittedSize(for: decoded, font: font)
             }

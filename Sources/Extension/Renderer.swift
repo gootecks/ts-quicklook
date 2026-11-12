@@ -17,7 +17,7 @@ enum Renderer {
         pattern: #"(?<c>//[^\n]*|/\*[\s\S]*?\*/)|(?<s>"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\[\s\S]|[^`\\])*`)|(?<n>\b(?:0[xX][0-9a-fA-F_]+|0[bB][01_]+|0[oO][0-7_]+|\d[\d_]*(?:\.\d[\d_]*)?(?:[eE][+-]?\d+)?)n?\b)|(?<d>@[A-Za-z_$][\w$]*)|(?<w>[A-Za-z_$][\w$]*)"#
     )
 
-    private static func dynamic(_ light: UInt32, _ dark: UInt32) -> NSColor {
+    static func dynamic(_ light: UInt32, _ dark: UInt32) -> NSColor {
         NSColor(name: nil) { appearance in
             let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
             return color(isDark ? dark : light)
@@ -36,12 +36,12 @@ enum Renderer {
     static let background = dynamic(0xffffff, 0x0d1117)
     static let foreground = dynamic(0x1f2328, 0xe6edf3)
 
-    private static let commentColor = dynamic(0x6e7781, 0x8b949e)
-    private static let stringColor = dynamic(0x0a3069, 0xa5d6ff)
-    private static let numberColor = dynamic(0x0550ae, 0x79c0ff)
-    private static let keywordColor = dynamic(0xcf222e, 0xff7b72)
-    private static let typeColor = dynamic(0x8250df, 0xffa657)
-    private static let functionColor = dynamic(0x6639ba, 0xd2a8ff)
+    static let commentColor = dynamic(0x6e7781, 0x8b949e)
+    static let stringColor = dynamic(0x0a3069, 0xa5d6ff)
+    static let numberColor = dynamic(0x0550ae, 0x79c0ff)
+    static let keywordColor = dynamic(0xcf222e, 0xff7b72)
+    static let typeColor = dynamic(0x8250df, 0xffa657)
+    static let functionColor = dynamic(0x6639ba, 0xd2a8ff)
     private static let decoratorColor = dynamic(0x953800, 0xffa657)
 
     static func isBinary(_ data: Data) -> Bool {
@@ -60,7 +60,7 @@ enum Renderer {
         return NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
     }
 
-    private static func italic(_ font: NSFont) -> NSFont {
+    static func italic(_ font: NSFont) -> NSFont {
         let descriptor = font.fontDescriptor.withSymbolicTraits(font.fontDescriptor.symbolicTraits.union(.italic))
         return NSFont(descriptor: descriptor, size: font.pointSize) ?? font
     }
@@ -81,7 +81,7 @@ enum Renderer {
         return width > 0 ? width : font.pointSize * 0.6
     }
 
-    private static func baseAttributes(_ font: NSFont) -> [NSAttributedString.Key: Any] {
+    static func baseAttributes(_ font: NSFont) -> [NSAttributedString.Key: Any] {
         [.font: font, .foregroundColor: foreground, .paragraphStyle: paragraphStyle(for: font)]
     }
 
@@ -106,12 +106,14 @@ enum Renderer {
             default: break
             }
         }
-        if truncated {
-            var attributes = baseAttributes(font)
-            attributes[.foregroundColor] = commentColor
-            result.append(NSAttributedString(string: "\n\nShowing the first \(maxBytes) bytes.", attributes: attributes))
-        }
+        if truncated { appendTruncationNote(to: result, font: font) }
         return result
+    }
+
+    static func appendTruncationNote(to result: NSMutableAttributedString, font: NSFont) {
+        var attributes = baseAttributes(font)
+        attributes[.foregroundColor] = commentColor
+        result.append(NSAttributedString(string: "\n\nShowing the first \(maxBytes) bytes.", attributes: attributes))
     }
 
     static func notice(_ message: String, font: NSFont) -> NSAttributedString {
