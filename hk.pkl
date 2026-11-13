@@ -6,6 +6,7 @@ exclude = List(
     ".agents/**",
     ".obsidian/**",
     "build/**",
+    "Icon/TSQuickLook.icon/**",
     "CHANGELOG.md"
 )
 
