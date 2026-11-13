@@ -1,0 +1,27 @@
+# hk check workflow from gootecks/hooks-lint-format/github. macOS runner for swiftformat and swiftlint; no JS dependencies, so the tsrs and install steps are dropped.
+name: hk
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
+      - name: hk check
+        run: hk check --all

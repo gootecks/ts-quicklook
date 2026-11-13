@@ -7,7 +7,7 @@ final class PreviewToolbar: NSView {
         didSet { label.stringValue = status }
     }
 
-    var backgroundColor: NSColor = NSColor.textBackgroundColor {
+    var backgroundColor: NSColor = .textBackgroundColor {
         didSet { needsDisplay = true }
     }
 
@@ -19,7 +19,9 @@ final class PreviewToolbar: NSView {
     private let button = NSButton(title: "Copy", target: nil, action: nil)
     private var resetWork: DispatchWorkItem?
 
-    override var isFlipped: Bool { true }
+    override var isFlipped: Bool {
+        true
+    }
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -46,7 +48,8 @@ final class PreviewToolbar: NSView {
         addSubview(button)
     }
 
-    required init?(coder: NSCoder) {
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
         fatalError("not used")
     }
 
@@ -64,24 +67,34 @@ final class PreviewToolbar: NSView {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: work)
     }
 
-    override func draw(_ dirtyRect: NSRect) {
+    override func draw(_: NSRect) {
         backgroundColor.setFill()
         bounds.fill()
         NSColor.separatorColor.setFill()
-        let y = isFlipped ? bounds.maxY - 1 : bounds.minY
-        NSRect(x: bounds.minX, y: y, width: bounds.width, height: 1).fill()
+        let lineY = isFlipped ? bounds.maxY - 1 : bounds.minY
+        NSRect(x: bounds.minX, y: lineY, width: bounds.width, height: 1).fill()
     }
 
     override func layout() {
         super.layout()
         button.sizeToFit()
-        let bs = button.frame.size
-        let bx = bounds.width - 8 - bs.width
-        button.frame = NSRect(x: bx, y: ((bounds.height - bs.height) / 2).rounded(), width: bs.width, height: bs.height)
+        let buttonSize = button.frame.size
+        let buttonX = bounds.width - 8 - buttonSize.width
+        button.frame = NSRect(
+            x: buttonX,
+            y: ((bounds.height - buttonSize.height) / 2).rounded(),
+            width: buttonSize.width,
+            height: buttonSize.height
+        )
 
         label.isHidden = bounds.width < 220
-        let lh = label.intrinsicContentSize.height
-        let lw = max(0, bx - 8 - 10)
-        label.frame = NSRect(x: 10, y: ((bounds.height - lh) / 2).rounded(), width: lw, height: lh)
+        let labelHeight = label.intrinsicContentSize.height
+        let labelWidth = max(0, buttonX - 8 - 10)
+        label.frame = NSRect(
+            x: 10,
+            y: ((bounds.height - labelHeight) / 2).rounded(),
+            width: labelWidth,
+            height: labelHeight
+        )
     }
 }

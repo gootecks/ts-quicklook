@@ -22,9 +22,9 @@ final class LineGutterView: NSRulerView {
     }
 
     init(scrollView: NSScrollView, textView: NSTextView) {
-        self.font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+        font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular)
         self.textView = textView
-        self.observedScrollView = scrollView
+        observedScrollView = scrollView
         super.init(scrollView: scrollView, orientation: .verticalRuler)
         clientView = textView
 
@@ -32,14 +32,17 @@ final class LineGutterView: NSRulerView {
         textView.postsFrameChangedNotifications = true
         NotificationCenter.default.addObserver(
             self, selector: #selector(viewportChanged(_:)),
-            name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
+            name: NSView.boundsDidChangeNotification, object: scrollView.contentView
+        )
         NotificationCenter.default.addObserver(
             self, selector: #selector(viewportChanged(_:)),
-            name: NSView.frameDidChangeNotification, object: textView)
+            name: NSView.frameDidChangeNotification, object: textView
+        )
         reload()
     }
 
-    required init(coder: NSCoder) {
+    @available(*, unavailable)
+    required init(coder _: NSCoder) {
         fatalError("not used")
     }
 
@@ -47,7 +50,7 @@ final class LineGutterView: NSRulerView {
         NotificationCenter.default.removeObserver(self)
     }
 
-    @objc private func viewportChanged(_ notification: Notification) {
+    @objc private func viewportChanged(_: Notification) {
         needsDisplay = true
     }
 
@@ -85,9 +88,23 @@ final class LineGutterView: NSRulerView {
         var high = lineStarts.count - 1
         while low < high {
             let mid = (low + high + 1) / 2
-            if lineStarts[mid] <= character { low = mid } else { high = mid - 1 }
+            if lineStarts[mid] <= character {
+                low = mid
+            } else {
+                high = mid - 1
+            }
         }
         return low
+    }
+
+    private struct DrawContext {
+        let dirtyRect: NSRect
+        let origin: NSPoint
+        let barX: CGFloat
+        let numberRight: CGFloat
+        let attributes: [NSAttributedString.Key: Any]
+        let lineHeight: CGFloat
+        let deletions: Set<Int>
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -98,63 +115,25 @@ final class LineGutterView: NSRulerView {
         NSColor.separatorColor.setFill()
         NSRect(x: bounds.maxX - 1, y: bounds.minY, width: 1, height: bounds.height).fill()
 
-        guard let textView = textView,
+        guard let textView,
               let layoutManager = textView.layoutManager,
               let container = textView.textContainer
         else { return }
 
         let origin = textView.textContainerOrigin
-        let visible = textView.visibleRect
-        let containerRect = visible.offsetBy(dx: -origin.x, dy: -origin.y)
-        let lineCount = lineStarts.count
+        let containerRect = textView.visibleRect.offsetBy(dx: -origin.x, dy: -origin.y)
         let barX = bounds.maxX - Self.rightPadding - Self.barWidth
-        let numberRight = barX - Self.gap
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: NSColor.tertiaryLabelColor,
-        ]
-        let lineHeight = ceil(font.ascender - font.descender + font.leading)
-        let deletions = changes?.deletions ?? []
+        let context = DrawContext(
+            dirtyRect: dirtyRect,
+            origin: origin,
+            barX: barX,
+            numberRight: barX - Self.gap,
+            attributes: [.font: font, .foregroundColor: NSColor.tertiaryLabelColor],
+            lineHeight: ceil(font.ascender - font.descender + font.leading),
+            deletions: changes?.deletions ?? []
+        )
+        let lineCount = lineStarts.count
         var lastLineRect: NSRect?
-
-        func rulerRect(_ rect: NSRect) -> NSRect {
-            let moved = rect.offsetBy(dx: origin.x, dy: origin.y)
-            return convert(moved, from: textView)
-        }
-
-        func topEdge(_ rect: NSRect) -> CGFloat {
-            isFlipped ? rect.minY : rect.maxY
-        }
-
-        func drawFragment(_ rect: NSRect, line: Int, first: Bool) {
-            let r = rulerRect(rect)
-            if r.maxY < dirtyRect.minY || r.minY > dirtyRect.maxY { return }
-            let number = line + 1
-            if let kind = changes?.lines[number] {
-                (kind == .added ? NSColor.systemGreen : NSColor.systemOrange).setFill()
-                NSRect(x: barX, y: r.minY, width: Self.barWidth, height: r.height).fill()
-            }
-            if first {
-                let label = String(number) as NSString
-                let size = label.size(withAttributes: attributes)
-                let y = r.minY + (r.height - max(size.height, lineHeight)) / 2
-                label.draw(at: NSPoint(x: numberRight - size.width, y: y), withAttributes: attributes)
-                if deletions.contains(number) {
-                    drawMarker(atY: topEdge(r), x: barX)
-                }
-            }
-        }
-
-        func drawMarker(atY y: CGFloat, x: CGFloat) {
-            let right = bounds.maxX - 1
-            let path = NSBezierPath()
-            path.move(to: NSPoint(x: right - 6, y: y - 3))
-            path.line(to: NSPoint(x: right, y: y))
-            path.line(to: NSPoint(x: right - 6, y: y + 3))
-            path.close()
-            NSColor.systemRed.setFill()
-            path.fill()
-        }
 
         if layoutManager.numberOfGlyphs > 0 {
             let glyphRange = layoutManager.glyphRange(forBoundingRect: containerRect, in: container)
@@ -162,20 +141,62 @@ final class LineGutterView: NSRulerView {
                 let character = layoutManager.characterIndexForGlyph(at: fragmentGlyphs.location)
                 let line = self.lineIndex(forCharacter: character)
                 let first = self.lineStarts[line] == character
-                drawFragment(rect, line: line, first: first)
-                if line == lineCount - 1 { lastLineRect = rect }
+                self.drawFragment(rect, line: line, first: first, context: context)
+                if line == lineCount - 1 {
+                    lastLineRect = rect
+                }
             }
         }
 
         let extra = layoutManager.extraLineFragmentRect
         if extra.height > 0, extra.maxY >= containerRect.minY, extra.minY <= containerRect.maxY {
-            drawFragment(extra, line: lineCount - 1, first: true)
+            drawFragment(extra, line: lineCount - 1, first: true, context: context)
             lastLineRect = extra
         }
 
-        if deletions.contains(lineCount + 1), let rect = lastLineRect {
-            let r = rulerRect(rect)
-            drawMarker(atY: isFlipped ? r.maxY : r.minY, x: barX)
+        if context.deletions.contains(lineCount + 1), let rect = lastLineRect {
+            let ruler = rulerRect(rect, origin: origin)
+            drawMarker(atY: isFlipped ? ruler.maxY : ruler.minY)
         }
+    }
+
+    private func rulerRect(_ rect: NSRect, origin: NSPoint) -> NSRect {
+        guard let textView else { return rect }
+        return convert(rect.offsetBy(dx: origin.x, dy: origin.y), from: textView)
+    }
+
+    private func drawFragment(_ rect: NSRect, line: Int, first: Bool, context: DrawContext) {
+        let ruler = rulerRect(rect, origin: context.origin)
+        if ruler.maxY < context.dirtyRect.minY || ruler.minY > context.dirtyRect.maxY {
+            return
+        }
+        let number = line + 1
+        if let kind = changes?.lines[number] {
+            (kind == .added ? NSColor.systemGreen : NSColor.systemOrange).setFill()
+            NSRect(x: context.barX, y: ruler.minY, width: Self.barWidth, height: ruler.height).fill()
+        }
+        if first {
+            let label = String(number) as NSString
+            let size = label.size(withAttributes: context.attributes)
+            let labelY = ruler.minY + (ruler.height - max(size.height, context.lineHeight)) / 2
+            label.draw(
+                at: NSPoint(x: context.numberRight - size.width, y: labelY),
+                withAttributes: context.attributes
+            )
+            if context.deletions.contains(number) {
+                drawMarker(atY: isFlipped ? ruler.minY : ruler.maxY)
+            }
+        }
+    }
+
+    private func drawMarker(atY markerY: CGFloat) {
+        let right = bounds.maxX - 1
+        let path = NSBezierPath()
+        path.move(to: NSPoint(x: right - 6, y: markerY - 3))
+        path.line(to: NSPoint(x: right, y: markerY))
+        path.line(to: NSPoint(x: right - 6, y: markerY + 3))
+        path.close()
+        NSColor.systemRed.setFill()
+        path.fill()
     }
 }

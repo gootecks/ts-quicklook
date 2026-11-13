@@ -80,14 +80,14 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
                 handler(nil)
                 return
             }
-            self.source = decoded
-            let content = SourceView(frame: self.view.bounds)
+            source = decoded
+            let content = SourceView(frame: view.bounds)
             content.toolbar.isHidden = decoded.isEmpty
             content.toolbar.copyText = { [weak self] in self?.source ?? "" }
             content.show(text, font: font, lineNumbers: !decoded.isEmpty)
-            self.install(content)
-            self.sourceView = content
-            self.preferredContentSize = preferred
+            install(content)
+            sourceView = content
+            preferredContentSize = preferred
             handler(nil)
             guard !decoded.isEmpty else { return }
             DispatchQueue.global(qos: .utility).async { [weak content] in
@@ -107,7 +107,9 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
     }
 
     func install(_ content: NSView) {
-        for subview in view.subviews { subview.removeFromSuperview() }
+        for subview in view.subviews {
+            subview.removeFromSuperview()
+        }
         content.frame = view.bounds
         content.autoresizingMask = [.width, .height]
         view.addSubview(content)
@@ -123,7 +125,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
             view.appearance = nil
             let systemDark = UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark"
             let isDark = view.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-            if systemDark && !isDark {
+            if systemDark, !isDark {
                 view.appearance = NSAppearance(named: .darkAqua)
             }
         }

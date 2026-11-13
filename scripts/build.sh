@@ -23,6 +23,12 @@ swiftc -O -parse-as-library -application-extension -module-name TSQuickLookPrevi
     -target "$target" -Xlinker -e -Xlinker _NSExtensionMain \
     -o "$appex/Contents/MacOS/TSQuickLookPreview" Sources/Extension/*.swift Sources/Shared/*.swift
 
-codesign -f -s - --entitlements Resources/Extension.entitlements "$appex"
-codesign -f -s - "$app"
+identity="${SIGN_IDENTITY:--}"
+if [ "$identity" = "-" ]; then
+    sign() { codesign -f -s - "$@"; }
+else
+    sign() { codesign -f -s "$identity" --options runtime --timestamp "$@"; }
+fi
+sign --entitlements Resources/Extension.entitlements "$appex"
+sign "$app"
 echo "Built $app"

@@ -1,0 +1,13 @@
+# Commitizen config from gootecks/hooks-lint-format/commitizen. CHANGELOG.md is written by hand (Keep a Changelog);
+# release.yml turns its [Unreleased] section into the release section, so cz does not write it.
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_provider = "scm"
+version_scheme = "semver2"
+tag_format = "v$version"
+update_changelog_on_bump = false
+bump_message = "chore(release): v$new_version"
+version_files = [
+  "Resources/App-Info.plist:CFBundleShortVersionString",
+  "Resources/Extension-Info.plist:CFBundleShortVersionString",
+]

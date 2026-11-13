@@ -91,7 +91,7 @@ final class GitRepository {
 
     func commit(_ id: Data) -> GitCommit? {
         guard let object = store.object(id), object.kind == .commit else { return nil }
-        let text = String(decoding: object.data, as: UTF8.self)
+        let text = String(bytes: object.data, encoding: .utf8) ?? String(bytes: object.data, encoding: .isoLatin1) ?? ""
         let split = text.range(of: "\n\n")
         let header = split.map { text[..<$0.lowerBound] } ?? text[...]
         let message = split.map { text[$0.upperBound...] } ?? ""
@@ -103,7 +103,9 @@ final class GitRepository {
             if line.hasPrefix("tree ") {
                 tree = Data(gitHex: String(line.dropFirst(5)))
             } else if line.hasPrefix("parent ") {
-                if let parent = Data(gitHex: String(line.dropFirst(7))) { parents.append(parent) }
+                if let parent = Data(gitHex: String(line.dropFirst(7))) {
+                    parents.append(parent)
+                }
             } else if line.hasPrefix("committer ") {
                 let fields = line.split(separator: " ")
                 if fields.count >= 3, let seconds = TimeInterval(fields[fields.count - 2]) {
@@ -125,7 +127,9 @@ final class GitRepository {
         var current = tree
         for (index, component) in path.enumerated() {
             guard let found = entry(component, in: current) else { return nil }
-            if index == path.count - 1 { return found.isTree ? nil : found.id }
+            if index == path.count - 1 {
+                return found.isTree ? nil : found.id
+            }
             guard found.isTree else { return nil }
             current = found.id
         }
@@ -134,7 +138,9 @@ final class GitRepository {
 
     private func entry(_ name: String, in tree: Data) -> Entry? {
         let key = EntryKey(tree: tree, name: name)
-        if let cached = entries[key] { return cached }
+        if let cached = entries[key] {
+            return cached
+        }
         let found = lookup(name, in: tree)
         entries[key] = .some(found)
         return found
@@ -173,7 +179,9 @@ final class GitRepository {
                     unchanged = parent
                     break
                 }
-                if index == 0 { previous = found }
+                if index == 0 {
+                    previous = found
+                }
             }
             guard let next = unchanged else { return (current, previous) }
             current = next
@@ -213,35 +221,60 @@ final class GitRepository {
                 guard position + fixed <= raw.count else { return false }
                 let flags = Int(raw[position + fixed - 2]) << 8 | Int(raw[position + fixed - 1])
                 var cursor = position + fixed
-                if version >= 3, flags & 0x4000 != 0 { cursor += 2 }
-
-                if version == 4 {
-                    guard cursor < raw.count else { return false }
-                    var byte = raw[cursor]
-                    cursor += 1
-                    var strip = Int(byte & 0x7f)
-                    while byte & 0x80 != 0 {
-                        guard cursor < raw.count, strip < 1 << 32 else { return false }
-                        byte = raw[cursor]
-                        cursor += 1
-                        strip = ((strip + 1) << 7) | Int(byte & 0x7f)
-                    }
-                    guard strip <= previous.count else { return false }
-                    previous.removeLast(strip)
-                    while cursor < raw.count, raw[cursor] != 0 {
-                        previous.append(raw[cursor])
-                        cursor += 1
-                    }
-                    if previous == target { return true }
-                    position = cursor + 1
-                } else {
-                    var end = cursor
-                    while end < raw.count, raw[end] != 0 { end += 1 }
-                    if end - cursor == target.count, raw[cursor ..< end].elementsEqual(target) { return true }
-                    position += (end - position + 8) & ~7
+                if version >= 3, flags & 0x4000 != 0 {
+                    cursor += 2
                 }
+
+                let step = version == 4
+                    ? Self.stepCompressedEntry(raw, cursor: cursor, previous: &previous, target: target)
+                    : Self.stepPaddedEntry(raw, position: position, cursor: cursor, target: target)
+                guard let step else { return false }
+                if step.matched {
+                    return true
+                }
+                position = step.next
             }
             return false
         }
+    }
+
+    private static func stepCompressedEntry(
+        _ raw: UnsafeRawBufferPointer,
+        cursor start: Int,
+        previous: inout [UInt8],
+        target: [UInt8]
+    ) -> (next: Int, matched: Bool)? {
+        var cursor = start
+        guard cursor < raw.count else { return nil }
+        var byte = raw[cursor]
+        cursor += 1
+        var strip = Int(byte & 0x7F)
+        while byte & 0x80 != 0 {
+            guard cursor < raw.count, strip < 1 << 32 else { return nil }
+            byte = raw[cursor]
+            cursor += 1
+            strip = ((strip + 1) << 7) | Int(byte & 0x7F)
+        }
+        guard strip <= previous.count else { return nil }
+        previous.removeLast(strip)
+        while cursor < raw.count, raw[cursor] != 0 {
+            previous.append(raw[cursor])
+            cursor += 1
+        }
+        return (cursor + 1, previous == target)
+    }
+
+    private static func stepPaddedEntry(
+        _ raw: UnsafeRawBufferPointer,
+        position: Int,
+        cursor: Int,
+        target: [UInt8]
+    ) -> (next: Int, matched: Bool)? {
+        var end = cursor
+        while end < raw.count, raw[end] != 0 {
+            end += 1
+        }
+        let matched = end - cursor == target.count && raw[cursor ..< end].elementsEqual(target)
+        return (position + ((end - position + 8) & ~7), matched)
     }
 }

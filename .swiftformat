@@ -1,0 +1,5 @@
+--swiftversion 6.0
+--exclude build
+--maxwidth 120
+--commas inline
+--disable wrapMultilineStatementBraces

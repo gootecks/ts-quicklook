@@ -62,7 +62,9 @@ struct GitChanges {
                 deletions.insert(hunk.newStart)
             } else {
                 let kind: Kind = hunk.oldCount == 0 ? .added : .modified
-                for line in hunk.newStart ..< hunk.newStart + hunk.newCount { lines[line] = kind }
+                for line in hunk.newStart ..< hunk.newStart + hunk.newCount {
+                    lines[line] = kind
+                }
             }
         }
     }

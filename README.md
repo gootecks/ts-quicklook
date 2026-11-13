@@ -8,6 +8,24 @@ macOS assigns the `.ts` extension to MPEG-2 transport stream video (`public.mpeg
 
 TSQuickLook claims both types. A file that holds text is shown as source; a file that is a real transport stream plays as video.
 
+## Inspiration
+
+The Finder preview pane support comes straight from [md-quicklook](https://github.com/armamut/md-quicklook) by [@armamut](https://github.com/armamut). Before seeing it, I didn't know a Quick Look extension could render a full, styled preview right in Finder's preview pane instead of a generic icon. md-quicklook showed it can be done, and done beautifully. The Quick Look bar has been raised for good. Thank you! 🙌
+
+## Screenshots
+
+The Quick Look panel, with the commit summary, Copy button and Git change bars:
+
+![Quick Look panel showing tsup.config.ts as highlighted source](docs/screenshots/quick-look-panel.png)
+
+Finder's preview pane. Finder lists the file as an MPEG-2 transport stream; the preview shows it as source:
+
+![Finder preview pane showing tsup.config.ts as highlighted source](docs/screenshots/finder-preview-pane.png)
+
+A `.ts` file that really is MPEG-2 video plays in the video player instead:
+
+![Finder preview pane playing anabology.ts, a real MPEG-2 transport stream](docs/screenshots/mpeg2-video.png)
+
 ## Features
 
 - Highlighted source with line numbers. Long lines wrap to the width of the preview.
@@ -20,11 +38,14 @@ TSQuickLook claims both types. A file that holds text is shown as source; a file
 
 ## Requirements
 
-- macOS 13 or later. Tested only on macOS 27.3 beta on Apple Silicon.
-- Xcode or the Command Line Tools (`xcode-select --install`) for `swiftc`, `clang` and `codesign`.
-- Xcode 26 or later for the app icon. Without it the build still works and the app has no icon.
+- macOS 13 or later on Apple Silicon. Tested only on macOS 27.3 beta.
+- To build from source: Xcode or the Command Line Tools (`xcode-select --install`) for `swiftc`, `clang` and `codesign`, and Xcode 26 or later for the app icon. Without Xcode 26 the build still works and the app has no icon.
 
 ## Install
+
+Download `TSQuickLook-X.Y.Z.zip` from [Releases](https://github.com/gootecks/ts-quicklook/releases), unzip it, move `TSQuickLook.app` to `/Applications` and open it. The app is signed with a Developer ID and notarized. If the Extension section of the window does not show the extension as registered, press **Re-register**. Then select a `.ts` file in Finder and press Space.
+
+### From source
 
 ```sh
 git clone git@github.com:gootecks/ts-quicklook.git
@@ -52,12 +73,12 @@ qlmanage -p examples/sample.ts
 
 Open `~/Applications/TSQuickLook.app`. The window has five sections:
 
-| Section | What it sets |
-|---|---|
-| Extension | Shows whether the extension is registered; **Re-register** registers it again |
-| Appearance | Auto, light or dark |
-| Font | Font and font size |
-| Preview size | Fit to content, or a fixed width and height |
+| Section         | What it sets                                                                                                          |
+| --------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Extension       | Shows whether the extension is registered; **Re-register** registers it again                                         |
+| Appearance      | Auto, light or dark                                                                                                   |
+| Font            | Font and font size                                                                                                    |
+| Preview size    | Fit to content, or a fixed width and height                                                                           |
 | File extensions | Which extensions the preview claims: `.ts`, `.mts`, `.cts`, `.tsx`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.log` or your own |
 
 Appearance, font and size take effect on the next preview. A change to the extension list needs **Apply**: it rewrites `QLSupportedContentTypes` in the installed extension, signs it again and registers it. An extension that macOS has no content type for is skipped and named in the result.
@@ -94,7 +115,8 @@ The diagram source is `docs/architecture.html`.
 - Files larger than 2 MB are cut off at 2 MB.
 - Git change bars are skipped for files larger than 4 MB. The search for a clean file's last commit stops after 1.5 seconds; the summary then shows "No uncommitted changes".
 - In a preview narrower than 220 points, which includes Finder's preview pane at its default width, the summary text is hidden. The change bars stay.
-- The build is signed ad hoc for the machine that built it. It is not notarized and is not meant to be distributed as a binary.
+- A build from source is signed ad hoc for the machine that built it. Release builds are signed with a Developer ID and notarized; see [docs/releasing.md](docs/releasing.md).
+- **Apply** in the settings app rewrites the extension's `Info.plist` and signs the app again ad hoc, which replaces the Developer ID signature of a release build. The app keeps working on the machine that applied the change.
 - Thumbnails and Spotlight are not covered.
 - `.txt` files cannot be claimed. Their type, `public.plain-text`, is on Quick Look's hardcoded list of internally handled types (`QLUTIManager.internallyClaimedTypes`), so Apple's built-in text viewer renders them before any extension is asked. Logs written as `.txt`, such as OBS logs, show highlighted only after renaming them to `.log`.
 
@@ -106,15 +128,15 @@ The diagram source is `docs/architecture.html`.
 
 ## Layout
 
-| Path | Purpose |
-|---|---|
+| Path                 | Purpose                                                                             |
+| -------------------- | ----------------------------------------------------------------------------------- |
 | `Sources/Extension/` | Preview extension: view controller, highlighter, toolbar, gutter, video, git reader |
-| `Sources/App/` | Settings app and extension registration |
-| `Sources/Shared/` | Settings model used by both |
-| `Resources/` | `Info.plist` files and the extension entitlements |
-| `Icon/` | App icon bundle, previews and notes |
-| `scripts/` | `build.sh`, `install.sh`, `uninstall.sh` |
-| `examples/sample.ts` | Sample file for a manual check |
-| `docs/` | Architecture diagram, preview pane notes |
+| `Sources/App/`       | Settings app and extension registration                                             |
+| `Sources/Shared/`    | Settings model used by both                                                         |
+| `Resources/`         | `Info.plist` files and the extension entitlements                                   |
+| `Icon/`              | App icon bundle, previews and notes                                                 |
+| `scripts/`           | `build.sh`, `install.sh`, `uninstall.sh`, `notarize.sh`, `release-notes.sh`         |
+| `examples/sample.ts` | Sample file for a manual check                                                      |
+| `docs/`              | Architecture diagram, screenshots, preview pane notes, release process              |
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.

@@ -1,0 +1,69 @@
+amends "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Builtins.pkl"
+
+exclude = List(
+    ".omp/**",
+    ".agents/**",
+    ".obsidian/**",
+    "build/**",
+    "Icon/TSQuickLook.icon/**",
+    "CHANGELOG.md"
+)
+
+steps {
+    ["actionlint"] = Builtins.actionlint
+    ["oxfmt"] = Builtins.oxfmt
+    ["rumdl"] {
+        glob = List("**/*.md", "**/*.markdown", "**/*.mdx")
+        check = "rumdl check --deny-config-warnings {{files}}"
+        fix = "hooks/rumdl-fix.sh {{files}}"
+    }
+    ["swiftformat"] {
+        glob = List("**/*.swift")
+        check = "swiftformat --lint {{files}}"
+        fix = "swiftformat {{files}}"
+    }
+    ["swiftlint"] {
+        glob = List("**/*.swift")
+        check = "swiftlint lint --strict --quiet {{files}}"
+        fix = "swiftlint lint --fix --quiet {{files}} && swiftlint lint --strict --quiet {{files}}"
+    }
+    ["zizmor"] = Builtins.zizmor
+}
+
+hooks {
+    ["check"] {
+        fix = false
+        stage = false
+        stash = "none"
+    }
+    ["fix"] {
+        fix = true
+        stage = false
+        stash = "none"
+    }
+    ["pre-commit"] {
+        fix = true
+        stage = true
+        stash = "git"
+    }
+    ["commit-msg"] {
+        steps {
+            ["conventional-commit"] = Builtins.check_conventional_commit
+        }
+    }
+    ["prepare-commit-msg"] {
+        steps {
+            ["czg"] {
+                interactive = true
+                check = #"""
+                    [ -z "{{source}}" ] || exit 0
+                    [ -z "${CI:-}" ] && [ -z "${HK_AGENT:-}" ] || exit 0
+                    ( : < /dev/tty ) 2>/dev/null || exit 0
+                    exec < /dev/tty
+                    czg --hook || true
+                    """#
+            }
+        }
+    }
+}

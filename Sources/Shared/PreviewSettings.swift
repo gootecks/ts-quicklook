@@ -14,7 +14,8 @@ struct PreviewSettings: Codable, Equatable {
 
     static let fileURL: URL = {
         let home = getpwuid(getuid()).flatMap { String(validatingUTF8: $0.pointee.pw_dir) } ?? NSHomeDirectory()
-        return URL(fileURLWithPath: home).appendingPathComponent("Library/Application Support/TSQuickLook/settings.json")
+        return URL(fileURLWithPath: home)
+            .appendingPathComponent("Library/Application Support/TSQuickLook/settings.json")
     }()
 
     init() {}
@@ -32,12 +33,16 @@ struct PreviewSettings: Codable, Equatable {
 
     static func load() -> PreviewSettings {
         guard let data = try? Data(contentsOf: fileURL),
-              let settings = try? JSONDecoder().decode(PreviewSettings.self, from: data) else { return PreviewSettings() }
+              let settings = try? JSONDecoder().decode(PreviewSettings.self, from: data)
+        else { return PreviewSettings() }
         return settings
     }
 
     func save() throws {
-        try FileManager.default.createDirectory(at: Self.fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: Self.fileURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try encoder.encode(self).write(to: Self.fileURL, options: .atomic)
