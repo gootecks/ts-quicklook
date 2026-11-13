@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- README screenshots: the Quick Look panel, Finder's preview pane, and a real MPEG-2 `.ts` file playing as video.
+- Commit hooks from the hooks-lint-format kit: hk with oxfmt, rumdl, actionlint, zizmor, Conventional Commits, and an `hk check` workflow on a macOS runner. Swift files are formatted by swiftformat and linted by swiftlint (`.swiftformat`, `.swiftlint.yml`); tool versions are pinned in `mise.toml`.
 - `.log` preview: a `log` preset in the settings app claims `com.apple.log`, and `.log` files use a log grammar (timestamps, levels, error and warning words, `[tags]`, URLs, strings, numbers, separator lines). `.txt` logs are not supported because Quick Look handles `public.plain-text` internally and never asks an extension.
 - App icon: an Icon Composer bundle in `Icon/`, compiled into the app by `scripts/build.sh`.
 - Settings app: `TSQuickLook.app` now opens a settings window. It shows the registration status and re-registers the extension, switches the appearance (auto, light, dark), picks the font and font size, and sets the preview size (fit to content, or a fixed width and height).

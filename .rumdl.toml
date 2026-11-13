@@ -1,0 +1,165 @@
+# rumdl is the only tool that formats and lints Markdown. Source: hooks-lint-format/rumdl/.rumdl.toml.
+# Policy: docs/lint-policy.md. State of every rule: docs/rumdl-rules.md.
+
+# ---------------------------------------------------------------- global settings
+
+[global]
+flavor = "standard"
+# Disabled fixes: these rules still report, but their auto-fix is never applied.
+unfixable = [
+  "MD025", # Fix demotes every heading after the second H1 and rewrites the outline.
+  "MD034", # Fix turns `https://x/<slug>/y` into `<https://x/><slug>/y` and mangles trailing `_` and `...`.
+  "MD040", # Fix labels every bare fence `text`, which hides the real language and switches off highlighting.
+  "MD044", # Fix rewrites the host inside bare URLs (`https://github.com` becomes `https://GitHub.com`).
+  "MD056", # Fix pads or adds cells to rows with unescaped pipes and changes the table content.
+  "MD063", # Fix lowercases every proper noun that is not in `ignore-words` (`S8` becomes `s8`).
+]
+
+[per-file-flavor]
+# Add "<vault glob>" = "obsidian" in a repository that is also an Obsidian vault (see rumdl/README.md).
+
+# ---------------------------------------------------------------- style choices
+
+[MD003]
+style = "atx"
+
+[MD004]
+style = "dash"
+
+[MD007]
+indent = 2
+
+[MD009]
+# Two trailing spaces stay valid as a hard break.
+br-spaces = 2
+strict = false
+
+[MD013]
+# Prose is one line per paragraph; reflow joins wrapped paragraphs back into one line.
+line-length = 0
+reflow = true
+reflow-mode = "normalize"
+# Fix corrupts content: reflow joins the body of a titled callout (`> [!note] Title`) into the marker line,
+# which changes the title in Obsidian. Quotes and callouts keep the line breaks the author wrote.
+blockquotes = false
+code-blocks = false
+# Wide tables must stay aligned (MD060), so MD013 never measures them.
+tables = false
+
+[MD025]
+# A front-matter title does not count as the first heading.
+front-matter-title = ""
+
+[MD029]
+style = "one-or-ordered"
+
+[MD033]
+allowed-elements = ["br", "details", "summary", "kbd", "sub", "sup", "img", "picture", "source"]
+# Fix stays off: it rewrites HTML that has no Markdown equivalent.
+fix = false
+
+[MD035]
+style = "---"
+
+[MD040]
+unknown-language-action = "warn"
+
+[MD044]
+# Proper names are per repository: with names set, the rule reports and (see unfixable) does not fix.
+names = []
+
+[MD046]
+style = "fenced"
+
+[MD048]
+style = "backtick"
+
+[MD049]
+style = "underscore"
+
+[MD050]
+style = "asterisk"
+
+[MD055]
+style = "leading-and-trailing"
+
+[MD059]
+prohibited-texts = ["click here", "here", "link", "more", "read more", "this link"]
+
+[MD076]
+style = "consistent"
+allow-loose-continuation = true
+
+[MD077]
+style = "aligned"
+
+# ---------------------------------------------------------------- opt-in rules, enabled
+
+[MD060]
+enabled = true
+style = "aligned"
+
+[MD063]
+enabled = true
+style = "sentence-case"
+# Keeps the word after a list-style number capitalised (`## 1. Survey`).
+sentence-case-restart-after = ["."]
+# Proper nouns are per repository; a word listed here keeps its case in headings.
+ignore-words = ["TSQuickLook", "Quick", "Look", "Finder", "Git", "MPEG", "TypeScript", "Xcode"]
+
+[MD070]
+enabled = true
+
+[MD073]
+enabled = true
+
+[MD080]
+enabled = true
+
+[MD082]
+enabled = true
+allow-parent-headings = true
+
+[MD083]
+enabled = true
+
+[MD084]
+enabled = true
+strict = false
+
+[MD085]
+enabled = true
+
+[MD087]
+enabled = true
+
+[MD090]
+enabled = true
+
+[MD091]
+enabled = true
+
+[MD093]
+enabled = true
+code = false
+
+[MD095]
+enabled = true
+
+# ---------------------------------------------------------------- disabled fixes (opt-in fixes that stay off)
+
+[MD036]
+# Fix turns bold lines into headings and changes the outline.
+fix = false
+
+[MD041]
+# Fix inserts a heading and moves the existing one.
+fix = false
+
+# ---------------------------------------------------------------- rules that are off
+
+# MD072 stays off (opt-in): alphabetical front-matter key order breaks the name-then-description order of SKILL.md. Set key-order per repository to enable it.
+# MD074 stays off (opt-in): checks MkDocs nav entries and applies only with flavor "mkdocs".
+# MD088 stays off (opt-in): its fix rewrites curly quotes to ASCII, which erases deliberate typography and non-English quote marks, and no renderer needs ASCII.
+# MD089 stays off (opt-in): the kit has no CJK text convention.
+# MD096 stays off (opt-in): needs a named sort column per table.
