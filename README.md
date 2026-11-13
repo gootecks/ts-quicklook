@@ -34,11 +34,14 @@ A `.ts` file that really is MPEG-2 video plays in the video player instead:
 
 ## Requirements
 
-- macOS 13 or later. Tested only on macOS 27.3 beta on Apple Silicon.
-- Xcode or the Command Line Tools (`xcode-select --install`) for `swiftc`, `clang` and `codesign`.
-- Xcode 26 or later for the app icon. Without it the build still works and the app has no icon.
+- macOS 13 or later on Apple Silicon. Tested only on macOS 27.3 beta.
+- To build from source: Xcode or the Command Line Tools (`xcode-select --install`) for `swiftc`, `clang` and `codesign`, and Xcode 26 or later for the app icon. Without Xcode 26 the build still works and the app has no icon.
 
 ## Install
+
+Download `TSQuickLook-X.Y.Z.zip` from [Releases](https://github.com/gootecks/ts-quicklook/releases), unzip it, move `TSQuickLook.app` to `/Applications` and open it. The app is signed with a Developer ID and notarized. If the Extension section of the window does not show the extension as registered, press **Re-register**. Then select a `.ts` file in Finder and press Space.
+
+### From source
 
 ```sh
 git clone git@github.com:gootecks/ts-quicklook.git
@@ -108,7 +111,8 @@ The diagram source is `docs/architecture.html`.
 - Files larger than 2 MB are cut off at 2 MB.
 - Git change bars are skipped for files larger than 4 MB. The search for a clean file's last commit stops after 1.5 seconds; the summary then shows "No uncommitted changes".
 - In a preview narrower than 220 points, which includes Finder's preview pane at its default width, the summary text is hidden. The change bars stay.
-- The build is signed ad hoc for the machine that built it. It is not notarized and is not meant to be distributed as a binary.
+- A build from source is signed ad hoc for the machine that built it. Release builds are signed with a Developer ID and notarized; see [docs/releasing.md](docs/releasing.md).
+- **Apply** in the settings app rewrites the extension's `Info.plist` and signs the app again ad hoc, which replaces the Developer ID signature of a release build. The app keeps working on the machine that applied the change.
 - Thumbnails and Spotlight are not covered.
 - `.txt` files cannot be claimed. Their type, `public.plain-text`, is on Quick Look's hardcoded list of internally handled types (`QLUTIManager.internallyClaimedTypes`), so Apple's built-in text viewer renders them before any extension is asked. Logs written as `.txt`, such as OBS logs, show highlighted only after renaming them to `.log`.
 
@@ -127,8 +131,8 @@ The diagram source is `docs/architecture.html`.
 | `Sources/Shared/`    | Settings model used by both                                                         |
 | `Resources/`         | `Info.plist` files and the extension entitlements                                   |
 | `Icon/`              | App icon bundle, previews and notes                                                 |
-| `scripts/`           | `build.sh`, `install.sh`, `uninstall.sh`                                            |
+| `scripts/`           | `build.sh`, `install.sh`, `uninstall.sh`, `notarize.sh`, `release-notes.sh`         |
 | `examples/sample.ts` | Sample file for a manual check                                                      |
-| `docs/`              | Architecture diagram, preview pane notes                                            |
+| `docs/`              | Architecture diagram, screenshots, preview pane notes, release process              |
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.

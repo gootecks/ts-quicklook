@@ -18,3 +18,7 @@ run = "sh scripts/install.sh"
 [tasks.uninstall]
 description = "Unregister the extension and remove ~/Applications/TSQuickLook.app"
 run = "sh scripts/uninstall.sh"
+
+[tasks."release:preview"]
+description = "Print the next version (commitizen dry run)"
+run = "uvx --from commitizen==4.19.3 cz bump --dry-run"
