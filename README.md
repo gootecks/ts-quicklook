@@ -8,6 +8,10 @@ macOS assigns the `.ts` extension to MPEG-2 transport stream video (`public.mpeg
 
 TSQuickLook claims both types. A file that holds text is shown as source; a file that is a real transport stream plays as video.
 
+## Inspiration
+
+The Finder preview pane support comes straight from [md-quicklook](https://github.com/armamut/md-quicklook) by [@armamut](https://github.com/armamut). Before seeing it, I didn't know a Quick Look extension could render a full, styled preview right in Finder's preview pane instead of a generic icon. md-quicklook showed it can be done, and done beautifully. The Quick Look bar has been raised for good. Thank you! 🙌
+
 ## Screenshots
 
 The Quick Look panel, with the commit summary, Copy button and Git change bars:
