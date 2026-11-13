@@ -55,7 +55,9 @@ enum GitZlib {
                 written = buffer.count - Int(stream.avail_out)
                 return status
             }
-            if status == Z_STREAM_END { break }
+            if status == Z_STREAM_END {
+                break
+            }
             guard status == Z_OK, written == output.count, output.count < limit else { return nil }
             output.append(contentsOf: repeatElement(0, count: output.count))
         }
@@ -77,7 +79,7 @@ final class GitPack {
         guard let index = try? Data(contentsOf: indexURL, options: .alwaysMapped),
               let pack = try? Data(contentsOf: packURL, options: .alwaysMapped),
               index.count >= 8 + 1024,
-              index.prefix(8).elementsEqual([0xff, 0x74, 0x4f, 0x63, 0, 0, 0, 2])
+              index.prefix(8).elementsEqual([0xFF, 0x74, 0x4F, 0x63, 0, 0, 0, 2])
         else { return nil }
         let count = index.withUnsafeBytes { $0.be32(8 + 255 * 4) }
         self.index = index
@@ -103,12 +105,18 @@ final class GitPack {
                     let order = memcmp(names + namesOffset + middle * hashSize, target, hashSize)
                     if order == 0 {
                         let value = raw.be32(offsetsOffset + middle * 4)
-                        if value & 0x8000_0000 == 0 { return value }
-                        let position = largeOffset + (value & 0x7fff_ffff) * 8
+                        if value & 0x8000_0000 == 0 {
+                            return value
+                        }
+                        let position = largeOffset + (value & 0x7FFF_FFFF) * 8
                         guard position + 8 <= raw.count else { return nil }
                         return raw.be32(position) << 32 | raw.be32(position + 4)
                     }
-                    if order < 0 { low = middle + 1 } else { high = middle }
+                    if order < 0 {
+                        low = middle + 1
+                    } else {
+                        high = middle
+                    }
                 }
                 return nil
             }
@@ -119,41 +127,19 @@ final class GitPack {
         guard depth < 128 else { return nil }
         return pack.withUnsafeBytes { raw -> GitObject? in
             var position = offset
-            guard position >= 0, position < raw.count else { return nil }
-            var byte = raw[position]
-            position += 1
-            let type = Int(byte >> 4) & 7
-            var size = Int(byte & 0x0f)
-            var shift = 4
-            while byte & 0x80 != 0 {
-                guard position < raw.count, shift < 60 else { return nil }
-                byte = raw[position]
-                position += 1
-                size |= Int(byte & 0x7f) << shift
-                shift += 7
-            }
-            guard size <= GitZlib.limit else { return nil }
+            guard let header = Self.readHeader(raw, position: &position),
+                  header.size <= GitZlib.limit
+            else { return nil }
 
-            if let kind = GitObject.Kind(rawValue: type) {
-                guard let data = GitZlib.decompress(raw, from: position, expected: size) else { return nil }
+            if let kind = GitObject.Kind(rawValue: header.type) {
+                guard let data = GitZlib.decompress(raw, from: position, expected: header.size) else { return nil }
                 return GitObject(kind: kind, data: data)
             }
 
             let base: GitObject?
-            if type == 6 {
-                guard position < raw.count else { return nil }
-                byte = raw[position]
-                position += 1
-                var distance = Int(byte & 0x7f)
-                while byte & 0x80 != 0 {
-                    guard position < raw.count, distance < 1 << 48 else { return nil }
-                    byte = raw[position]
-                    position += 1
-                    distance = ((distance + 1) << 7) | Int(byte & 0x7f)
-                }
-                guard distance > 0, distance <= offset else { return nil }
-                base = object(at: offset - distance, store: store, depth: depth + 1)
-            } else if type == 7 {
+            if header.type == 6 {
+                base = deltaBaseByOffset(raw, position: &position, offset: offset, store: store, depth: depth)
+            } else if header.type == 7 {
                 guard position + hashSize <= raw.count else { return nil }
                 let id = Data(raw[position ..< position + hashSize])
                 position += hashSize
@@ -163,11 +149,72 @@ final class GitPack {
             }
 
             guard let base,
-                  let delta = GitZlib.decompress(raw, from: position, expected: size),
+                  let delta = GitZlib.decompress(raw, from: position, expected: header.size),
                   let data = Self.apply([UInt8](delta), to: [UInt8](base.data))
             else { return nil }
             return GitObject(kind: base.kind, data: data)
         }
+    }
+
+    private static func readHeader(
+        _ raw: UnsafeRawBufferPointer,
+        position: inout Int
+    ) -> (type: Int, size: Int)? {
+        guard position >= 0, position < raw.count else { return nil }
+        var byte = raw[position]
+        position += 1
+        let type = Int(byte >> 4) & 7
+        var size = Int(byte & 0x0F)
+        var shift = 4
+        while byte & 0x80 != 0 {
+            guard position < raw.count, shift < 60 else { return nil }
+            byte = raw[position]
+            position += 1
+            size |= Int(byte & 0x7F) << shift
+            shift += 7
+        }
+        return (type, size)
+    }
+
+    private func deltaBaseByOffset(
+        _ raw: UnsafeRawBufferPointer,
+        position: inout Int,
+        offset: Int,
+        store: GitObjectStore,
+        depth: Int
+    ) -> GitObject? {
+        guard position < raw.count else { return nil }
+        var byte = raw[position]
+        position += 1
+        var distance = Int(byte & 0x7F)
+        while byte & 0x80 != 0 {
+            guard position < raw.count, distance < 1 << 48 else { return nil }
+            byte = raw[position]
+            position += 1
+            distance = ((distance + 1) << 7) | Int(byte & 0x7F)
+        }
+        guard distance > 0, distance <= offset else { return nil }
+        return object(at: offset - distance, store: store, depth: depth + 1)
+    }
+
+    private static func readCopyOperand(
+        _ command: UInt8,
+        _ delta: [UInt8],
+        _ position: inout Int
+    ) -> (start: Int, length: Int)? {
+        var start = 0
+        var length = 0
+        for bit in 0 ..< 4 where command & (1 << bit) != 0 {
+            guard position < delta.count else { return nil }
+            start |= Int(delta[position]) << (8 * bit)
+            position += 1
+        }
+        for bit in 0 ..< 3 where command & (0x10 << bit) != 0 {
+            guard position < delta.count else { return nil }
+            length |= Int(delta[position]) << (8 * bit)
+            position += 1
+        }
+        return (start, length == 0 ? 0x10000 : length)
     }
 
     private static func apply(_ delta: [UInt8], to base: [UInt8]) -> Data? {
@@ -179,8 +226,10 @@ final class GitPack {
             while position < delta.count, shift < 60 {
                 let byte = delta[position]
                 position += 1
-                value |= Int(byte & 0x7f) << shift
-                if byte & 0x80 == 0 { return value }
+                value |= Int(byte & 0x7F) << shift
+                if byte & 0x80 == 0 {
+                    return value
+                }
                 shift += 7
             }
             return nil
@@ -196,19 +245,7 @@ final class GitPack {
             let command = delta[position]
             position += 1
             if command & 0x80 != 0 {
-                var start = 0
-                var length = 0
-                for bit in 0 ..< 4 where command & (1 << bit) != 0 {
-                    guard position < delta.count else { return nil }
-                    start |= Int(delta[position]) << (8 * bit)
-                    position += 1
-                }
-                for bit in 0 ..< 3 where command & (0x10 << bit) != 0 {
-                    guard position < delta.count else { return nil }
-                    length |= Int(delta[position]) << (8 * bit)
-                    position += 1
-                }
-                if length == 0 { length = 0x10000 }
+                guard let (start, length) = readCopyOperand(command, delta, &position) else { return nil }
                 guard start + length <= base.count else { return nil }
                 output.append(contentsOf: base[start ..< start + length])
             } else if command != 0 {
@@ -270,8 +307,10 @@ final class GitObjectStore {
 
     private static func loose(_ compressed: Data) -> GitObject? {
         let inflated = compressed.withUnsafeBytes { GitZlib.decompress($0, from: 0, expected: nil) }
-        guard let raw = inflated, let end = raw.firstIndex(of: 0) else { return nil }
-        let header = String(decoding: raw[..<end], as: UTF8.self)
+        guard let raw = inflated, let end = raw.firstIndex(of: 0), let header = String(
+            bytes: raw[..<end],
+            encoding: .utf8
+        ) else { return nil }
         let kind: GitObject.Kind
         switch header.split(separator: " ").first {
         case "commit": kind = .commit

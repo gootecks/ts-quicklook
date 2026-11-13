@@ -5,7 +5,9 @@ private final class SourceTextView: NSTextView {
         let side: CGFloat = newSize.width < 500 ? 14 : (newSize.width < 800 ? 28 : 40)
         let vertical: CGFloat = newSize.width < 500 ? 14 : 28
         let inset = NSSize(width: side, height: vertical)
-        if textContainerInset != inset { textContainerInset = inset }
+        if textContainerInset != inset {
+            textContainerInset = inset
+        }
         super.setFrameSize(newSize)
     }
 }
@@ -16,7 +18,9 @@ final class SourceView: NSView {
     let toolbar = PreviewToolbar(frame: .zero)
     let gutter: LineGutterView
 
-    override var isFlipped: Bool { true }
+    override var isFlipped: Bool {
+        true
+    }
 
     override init(frame: NSRect) {
         let storage = NSTextStorage()
@@ -60,8 +64,8 @@ final class SourceView: NSView {
         addSubview(scroll)
     }
 
-    required init?(coder: NSCoder) {
-        return nil
+    required init?(coder _: NSCoder) {
+        nil
     }
 
     override func layout() {

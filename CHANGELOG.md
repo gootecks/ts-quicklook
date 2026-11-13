@@ -18,6 +18,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Line-number gutter with git change bars: green for added lines, orange for modified lines, a red marker where lines were removed. A file with uncommitted changes is compared with `HEAD`; a clean file shows the lines its last commit touched. The bar above the source shows the summary ("Uncommitted changes · +3 −3", or the last commit's short hash, age and subject, or "Untracked"). Files outside a repository show line numbers only.
 - Git data is read directly from `.git` (refs, index, loose and packed objects) and diffed in-process, because the Quick Look sandbox does not let the extension start `git`.
 
+- Swift sources are formatted with swiftformat and pass swiftlint in strict mode. Long functions are split into helpers, short names are spelled out, and the regular expressions compile without `try!`. Files with invalid UTF-8 now fall back to Latin-1 instead of showing replacement characters.
 ### Changed
 
 - The extension is now view-based (`QLIsDataBasedPreview` false, principal class `TSQLPreviewViewController`): Finder's preview pane shows the highlighted source instead of the file icon. The source is drawn in a native text view; no HTML is generated.

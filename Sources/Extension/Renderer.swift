@@ -10,12 +10,26 @@ enum Renderer {
         "import", "in", "infer", "instanceof", "interface", "is", "keyof", "let", "module", "namespace", "never",
         "new", "null", "number", "object", "of", "override", "private", "protected", "public", "readonly",
         "return", "satisfies", "set", "static", "string", "super", "switch", "symbol", "this", "throw", "true",
-        "try", "type", "typeof", "undefined", "unique", "unknown", "var", "void", "while", "with", "yield",
+        "try", "type", "typeof", "undefined", "unique", "unknown", "var", "void", "while", "with", "yield"
     ]
 
-    static let tokens = try! NSRegularExpression(
-        pattern: #"(?<c>//[^\n]*|/\*[\s\S]*?\*/)|(?<s>"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\[\s\S]|[^`\\])*`)|(?<n>\b(?:0[xX][0-9a-fA-F_]+|0[bB][01_]+|0[oO][0-7_]+|\d[\d_]*(?:\.\d[\d_]*)?(?:[eE][+-]?\d+)?)n?\b)|(?<d>@[A-Za-z_$][\w$]*)|(?<w>[A-Za-z_$][\w$]*)"#
+    static let tokens = compile(
+        #"(?<c>//[^\n]*|/\*[\s\S]*?\*/)|"#,
+        #"(?<s>"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\[\s\S]|[^`\\])*`)|"#,
+        #"(?<n>\b(?:0[xX][0-9a-fA-F_]+|0[bB][01_]+|0[oO][0-7_]+|"#,
+        #"\d[\d_]*(?:\.\d[\d_]*)?(?:[eE][+-]?\d+)?)n?\b)|"#,
+        #"(?<d>@[A-Za-z_$][\w$]*)|"#,
+        #"(?<w>[A-Za-z_$][\w$]*)"#
     )
+
+    /// Builds a regular expression from pattern fragments; the patterns are compile-time constants.
+    static func compile(_ parts: String..., options: NSRegularExpression.Options = []) -> NSRegularExpression {
+        do {
+            return try NSRegularExpression(pattern: parts.joined(), options: options)
+        } catch {
+            preconditionFailure("Invalid built-in regular expression: \(error)")
+        }
+    }
 
     static func dynamic(_ light: UInt32, _ dark: UInt32) -> NSColor {
         NSColor(name: nil) { appearance in
@@ -33,23 +47,24 @@ enum Renderer {
         )
     }
 
-    static let background = dynamic(0xffffff, 0x0d1117)
-    static let foreground = dynamic(0x1f2328, 0xe6edf3)
+    static let background = dynamic(0xFFFFFF, 0x0D1117)
+    static let foreground = dynamic(0x1F2328, 0xE6EDF3)
 
-    static let commentColor = dynamic(0x6e7781, 0x8b949e)
-    static let stringColor = dynamic(0x0a3069, 0xa5d6ff)
-    static let numberColor = dynamic(0x0550ae, 0x79c0ff)
-    static let keywordColor = dynamic(0xcf222e, 0xff7b72)
-    static let typeColor = dynamic(0x8250df, 0xffa657)
-    static let functionColor = dynamic(0x6639ba, 0xd2a8ff)
-    private static let decoratorColor = dynamic(0x953800, 0xffa657)
+    static let commentColor = dynamic(0x6E7781, 0x8B949E)
+    static let stringColor = dynamic(0x0A3069, 0xA5D6FF)
+    static let numberColor = dynamic(0x0550AE, 0x79C0FF)
+    static let keywordColor = dynamic(0xCF222E, 0xFF7B72)
+    static let typeColor = dynamic(0x8250DF, 0xFFA657)
+    static let functionColor = dynamic(0x6639BA, 0xD2A8FF)
+    private static let decoratorColor = dynamic(0x953800, 0xFFA657)
 
     static func isBinary(_ data: Data) -> Bool {
         data.prefix(8192).contains(0)
     }
 
     static func source(from data: Data) -> String {
-        String(decoding: data.prefix(maxBytes), as: UTF8.self)
+        let bytes = data.prefix(maxBytes)
+        return String(bytes: bytes, encoding: .utf8) ?? String(bytes: bytes, encoding: .isoLatin1) ?? ""
     }
 
     static func font(for settings: PreviewSettings) -> NSFont {
@@ -106,7 +121,9 @@ enum Renderer {
             default: break
             }
         }
-        if truncated { appendTruncationNote(to: result, font: font) }
+        if truncated {
+            appendTruncationNote(to: result, font: font)
+        }
         return result
     }
 
@@ -124,10 +141,16 @@ enum Renderer {
         for name in ["c", "s", "n", "d"] where match.range(withName: name).location != NSNotFound {
             return name
         }
-        if keywords.contains(token) { return "k" }
-        if let first = token.unicodeScalars.first, CharacterSet.uppercaseLetters.contains(first) { return "t" }
+        if keywords.contains(token) {
+            return "k"
+        }
+        if let first = token.unicodeScalars.first, CharacterSet.uppercaseLetters.contains(first) {
+            return "t"
+        }
         var index = end
-        while index < text.length, text.character(at: index) == 0x20 { index += 1 }
+        while index < text.length, text.character(at: index) == 0x20 {
+            index += 1
+        }
         return index < text.length && text.character(at: index) == 0x28 ? "f" : ""
     }
 }

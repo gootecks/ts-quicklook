@@ -1,6 +1,6 @@
 import AppKit
-import AVKit
 import AVFoundation
+import AVKit
 
 final class VideoPreviewView: NSView {
     private let url: URL
@@ -9,7 +9,7 @@ final class VideoPreviewView: NSView {
 
     init(url: URL) {
         self.url = url
-        self.player = AVPlayer(url: url)
+        player = AVPlayer(url: url)
         super.init(frame: NSRect(x: 0, y: 0, width: 640, height: 360))
         playerView.frame = bounds
         playerView.autoresizingMask = [.width, .height]
@@ -19,7 +19,8 @@ final class VideoPreviewView: NSView {
         addSubview(playerView)
     }
 
-    required init?(coder: NSCoder) {
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
         fatalError("not used")
     }
 

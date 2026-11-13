@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 private struct FontChoice: Hashable {
     let family: String
@@ -18,6 +18,7 @@ final class SettingsModel: ObservableObject {
             }
         }
     }
+
     @Published var saveError: String?
     @Published var status = ExtensionManager.Status.missing
     @Published var registering = false
@@ -63,7 +64,9 @@ final class SettingsModel: ObservableObject {
         let extensions = settings.extensions
         DispatchQueue.global().async {
             let message: String
-            do { message = try ExtensionManager.apply(extensions: extensions) } catch { message = error.localizedDescription }
+            do { message = try ExtensionManager.apply(extensions: extensions) } catch {
+                message = error.localizedDescription
+            }
             DispatchQueue.main.async {
                 self.applyMessage = message
                 self.applying = false
@@ -84,9 +87,11 @@ final class SettingsModel: ObservableObject {
     func binding(for ext: String) -> Binding<Bool> {
         Binding(
             get: { self.settings.extensions.contains(ext) },
-            set: { on in
-                if on {
-                    if !self.settings.extensions.contains(ext) { self.settings.extensions.append(ext) }
+            set: { enabled in
+                if enabled {
+                    if !self.settings.extensions.contains(ext) {
+                        self.settings.extensions.append(ext)
+                    }
                 } else {
                     self.settings.extensions.removeAll { $0 == ext }
                 }
@@ -100,7 +105,9 @@ final class SettingsModel: ObservableObject {
 
     func addExtension() {
         guard let ext = ExtensionManager.normalize(newExtension) else { return }
-        if !settings.extensions.contains(ext) { settings.extensions.append(ext) }
+        if !settings.extensions.contains(ext) {
+            settings.extensions.append(ext)
+        }
         newExtension = ""
     }
 }
@@ -128,10 +135,10 @@ private struct ExtensionSection: View {
 
     private var statusText: String {
         switch model.status {
-        case .enabled: return "Enabled"
-        case .registered: return "Registered"
-        case .ignored: return "Disabled in System Settings"
-        case .missing: return "Not registered"
+        case .enabled: "Enabled"
+        case .registered: "Registered"
+        case .ignored: "Disabled in System Settings"
+        case .missing: "Not registered"
         }
     }
 
@@ -141,7 +148,9 @@ private struct ExtensionSection: View {
             HStack {
                 Button("Re-register") { model.register() }
                     .disabled(model.registering)
-                if model.registering { ProgressView().controlSize(.small) }
+                if model.registering {
+                    ProgressView().controlSize(.small)
+                }
             }
             if let message = model.registerMessage {
                 Text(message).font(.caption).foregroundColor(.secondary).textSelection(.enabled)
@@ -173,7 +182,8 @@ private struct FontSection: View {
         let manager = NSFontManager.shared
         var result: [FontChoice] = []
         for family in manager.availableFontFamilies {
-            guard let font = manager.font(withFamily: family, traits: [], weight: 5, size: 12), font.isFixedPitch else { continue }
+            guard let font = manager.font(withFamily: family, traits: [], weight: 5, size: 12),
+                  font.isFixedPitch else { continue }
             result.append(FontChoice(family: family, postScriptName: font.fontName))
         }
         return result.sorted { $0.family.localizedCaseInsensitiveCompare($1.family) == .orderedAscending }
@@ -189,12 +199,14 @@ private struct FontSection: View {
         Section("Font") {
             Picker("Font", selection: $model.settings.fontName) {
                 Text("System Monospaced").tag("")
-                if let name = unlisted { Text(name).tag(name) }
+                if let name = unlisted {
+                    Text(name).tag(name)
+                }
                 ForEach(choices, id: \.postScriptName) { choice in
                     Text(choice.family).tag(choice.postScriptName)
                 }
             }
-            Stepper(value: $model.settings.fontSize, in: 9...24, step: 1) {
+            Stepper(value: $model.settings.fontSize, in: 9 ... 24, step: 1) {
                 Text("Size: \(Int(model.settings.fontSize)) pt")
             }
         }
@@ -212,8 +224,8 @@ private struct SizeSection: View {
             }
             .pickerStyle(.segmented)
             if model.settings.sizeMode == .fixed {
-                DimensionRow(title: "Width", value: $model.settings.width, range: 400...2000)
-                DimensionRow(title: "Height", value: $model.settings.height, range: 300...1600)
+                DimensionRow(title: "Width", value: $model.settings.width, range: 400 ... 2000)
+                DimensionRow(title: "Height", value: $model.settings.height, range: 300 ... 1600)
             }
             Text("Auto fits the window to the file's content.")
                 .font(.caption).foregroundColor(.secondary)
@@ -252,7 +264,9 @@ private struct ExtensionsSection: View {
 
     @State private var adding = false
 
-    private var pending: Bool { model.installedTypes != model.selectedTypes }
+    private var pending: Bool {
+        model.installedTypes != model.selectedTypes
+    }
 
     var body: some View {
         Section("File extensions") {
@@ -279,7 +293,9 @@ private struct ExtensionsSection: View {
             HStack {
                 Button("Apply") { model.apply() }
                     .disabled(model.applying)
-                if model.applying { ProgressView().controlSize(.small) }
+                if model.applying {
+                    ProgressView().controlSize(.small)
+                }
             }
             if let message = model.applyMessage {
                 Text(message).font(.caption).foregroundColor(.secondary).textSelection(.enabled)
